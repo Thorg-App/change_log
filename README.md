@@ -76,10 +76,10 @@ Commands:
   undep <id> <dep-id>      Remove dependency
   link <id> <id> [id...]   Link tickets together (symmetric)
   unlink <id> <target-id>  Remove link between tickets
-  ls [--status=X] [-a X]   List tickets
-  ready [-a X]             List open/in-progress tickets with deps resolved
-  blocked [-a X]           List open/in-progress tickets with unresolved deps
-  closed [--limit=N] [-a X] List recently closed tickets (default 20, by mtime)
+  ls [--status=X] [-a X] [-T X]   List tickets
+  ready [-a X] [-T X]      List open/in-progress tickets with deps resolved
+  blocked [-a X] [-T X]    List open/in-progress tickets with unresolved deps
+  closed [--limit=N] [-a X] [-T X] List recently closed tickets (default 20, by mtime)
   show <id>                Display ticket
   edit <id>                Open ticket in $EDITOR
   add-note <id> [text]     Append timestamped note (or pipe via stdin)
