@@ -55,6 +55,8 @@ init_tickets_dir() {
     return 1
 }
 
+TICKET_PAGER="${TICKET_PAGER:-${PAGER:-}}"
+
 # Prefer ripgrep if available, fall back to grep
 if command -v rg &>/dev/null; then
     _grep() { rg "$@"; }
@@ -1130,7 +1132,8 @@ cmd_show() {
     local target_id
     target_id=$(basename "$file" .md)
 
-    awk -v target="$target_id" -v target_file="$file" '
+    _show_output() {
+        awk -v target="$target_id" -v target_file="$file" '
     BEGIN { FS=": "; in_front=0 }
 
     # First pass: collect all ticket metadata
@@ -1262,6 +1265,14 @@ cmd_show() {
         }
     }
     ' "$TICKETS_DIR"/*.md 2>/dev/null
+    }
+
+    if [[ -t 1 && -n "$TICKET_PAGER" ]]; then
+        read -r -a pager_cmd <<<"$TICKET_PAGER"
+        _show_output | "${pager_cmd[@]}"
+    else
+        _show_output
+    fi
 }
 
 cmd_add_note() {
