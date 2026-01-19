@@ -134,6 +134,13 @@ cmd_create() {
         esac
     done
 
+    # Validate and resolve parent if specified
+    if [[ -n "$parent" ]]; then
+        local parent_file
+        parent_file=$(ticket_path "$parent") || return 1
+        parent=$(basename "$parent_file" .md)
+    fi
+
     title="${title:-Untitled}"
     local id
     id=$(generate_id)
@@ -572,8 +579,10 @@ cmd_dep() {
     local file
     file=$(ticket_path "$id") || return 1
 
-    # Verify dependency exists
-    ticket_path "$dep_id" >/dev/null || return 1
+    # Verify dependency exists and resolve to full ID
+    local dep_file
+    dep_file=$(ticket_path "$dep_id") || return 1
+    dep_id=$(basename "$dep_file" .md)
 
     # Get current deps
     local current_deps
@@ -899,6 +908,11 @@ cmd_undep() {
     local file
     file=$(ticket_path "$id") || return 1
 
+    # Resolve dep_id to full ID
+    local dep_file
+    dep_file=$(ticket_path "$dep_id") || return 1
+    dep_id=$(basename "$dep_file" .md)
+
     local current_deps
     current_deps=$(yaml_field "$file" "deps")
 
@@ -1043,11 +1057,13 @@ cmd_unlink() {
         return 1
     fi
 
-    local id="$1"
-    local target_id="$2"
+    # Resolve both IDs to full IDs
     local file target_file
-    file=$(ticket_path "$id") || return 1
-    target_file=$(ticket_path "$target_id") || return 1
+    file=$(ticket_path "$1") || return 1
+    target_file=$(ticket_path "$2") || return 1
+    local id target_id
+    id=$(basename "$file" .md)
+    target_id=$(basename "$target_file" .md)
 
     local current_links
     current_links=$(yaml_field "$file" "links" || true)

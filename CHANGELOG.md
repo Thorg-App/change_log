@@ -5,6 +5,12 @@
 ### Added
 - `list` command alias for `ls`
 
+### Fixed
+- `dep` command now resolves partial IDs for the dependency argument
+- `undep` command now resolves partial IDs and validates dependency exists
+- `unlink` command now resolves partial IDs for both arguments
+- `create --parent` now validates and resolves parent ticket ID
+
 ## [0.3.0] - 2026-01-18
 
 ### Added
