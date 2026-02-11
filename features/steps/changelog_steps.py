@@ -81,18 +81,6 @@ def find_entry_file(context, entry_id):
     raise FileNotFoundError(f"No entry file found with id: {entry_id}")
 
 
-def extract_created_id(stdout):
-    """Extract entry ID from create command output (JSON format)."""
-    output = stdout.strip()
-    if not output:
-        return None
-    try:
-        data = json.loads(output)
-        return data.get('id')
-    except json.JSONDecodeError:
-        return output
-
-
 def _parse_jsonl(stdout):
     """Parse JSONL output into a list of dicts, skipping blank lines.
 
@@ -106,21 +94,25 @@ def _parse_jsonl(stdout):
 
 
 def _track_created_entry(context, command, result):
-    """Track entry ID and path from create command JSON output."""
+    """Track entry ID and path from create command JSON output.
+
+    Parses JSON once to extract both id and full_path.
+    """
     if 'change_log create' not in command or result.returncode != 0:
         return
-    created_id = extract_created_id(result.stdout)
+    output = result.stdout.strip()
+    if not output:
+        return
+    try:
+        data = json.loads(output)
+    except json.JSONDecodeError:
+        return
+    created_id = data.get('id')
     if not created_id:
         return
     context.last_created_id = created_id
-    try:
-        data = json.loads(result.stdout.strip())
-        if 'full_path' in data:
-            if not hasattr(context, 'tickets'):
-                context.tickets = {}
-            context.tickets[created_id] = Path(data['full_path'])
-    except (json.JSONDecodeError, KeyError):
-        pass
+    if 'full_path' in data:
+        context.tickets[created_id] = Path(data['full_path'])
 
 
 def _run_command(context, command, env_override=None, input_text=None):
