@@ -42,6 +42,11 @@ Feature: Changelog Notes
     Then the command should fail
     And the output should contain "Error: entry 'nonexistent' not found"
 
+  Scenario: Add note via piped stdin
+    When I pipe "Piped note content" to "change_log add-note note-0001"
+    Then the command should succeed
+    And entry "note-0001" should contain "Piped note content"
+
   Scenario: Add note with partial ID
     When I run "change_log add-note 0001 'Partial ID note'"
     Then the command should succeed

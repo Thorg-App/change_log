@@ -43,6 +43,14 @@ All 74 scenarios pass across 8 feature files. `make test` exits 0. Zero "ticket"
 | MINOR-03: `--author` override scenario | Done | Added to `changelog_creation.feature` |
 | MINOR-05: `--note-id` validation scenario | Done | Added to `changelog_creation.feature` |
 
+## SHOULD_FIX Iteration (Reviewer Round 2)
+
+| Fix | Status | Details |
+|-----|--------|---------|
+| SHOULD_FIX-01: Duplicate listing assertion | Done | Changed `"list-000"` x2 to `"First entry"` + `"Second entry"` in `changelog_listing.feature` |
+| SHOULD_FIX-02: Missing query ordering test | Done | Added "Query outputs most recent first" scenario to `changelog_query.feature` |
+| SHOULD_FIX-03: Missing piped stdin test | Done | Added "Add note via piped stdin" scenario to `changelog_notes.feature` using existing `step_pipe_to_command` step |
+
 ## Key Decisions
 
 1. **`context.tickets` variable name kept**: The plan explicitly says to keep this internal Python variable name. The word "ticket" only appears in Python variable names for internal tracking, not in user-facing step text or feature files.
@@ -56,14 +64,14 @@ All 74 scenarios pass across 8 feature files. `make test` exits 0. Zero "ticket"
 ## Scenario Count
 
 - Old suite: ~131 scenarios (including status, deps, links, plugins)
-- New suite: 74 scenarios
-- Reduction: 43% fewer scenarios while maintaining full behavioral coverage of the `change_log` script
+- New suite: 76 scenarios (74 original + 2 from SHOULD_FIX iteration)
+- Reduction: 42% fewer scenarios while maintaining full behavioral coverage of the `change_log` script
 
 ## Test Results
 
 ```
 8 features passed, 0 failed, 0 skipped
-74 scenarios passed, 0 failed, 0 skipped
-382 steps passed, 0 failed, 0 skipped
-Took 0min 0.926s
+76 scenarios passed, 0 failed, 0 skipped
+394 steps passed, 0 failed, 0 skipped
+Took 0min 0.949s
 ```

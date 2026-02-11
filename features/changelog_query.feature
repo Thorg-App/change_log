@@ -58,6 +58,14 @@ Feature: Changelog Query
     Then the command should succeed
     And the JSONL output should have numeric field "impact"
 
+  Scenario: Query outputs most recent first
+    Given a changelog entry exists with ID "order-aaa" and title "Older entry"
+    And a changelog entry exists with ID "order-bbb" and title "Newer entry"
+    When I run "change_log query"
+    Then the command should succeed
+    And the output line 1 should contain "order-bbb"
+    And the output line 2 should contain "order-aaa"
+
   Scenario: Query includes desc field when present
     When I run "change_log create 'Desc query test' --impact 3 --desc 'A test description'"
     And I run "change_log query"

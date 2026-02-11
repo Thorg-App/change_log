@@ -11,8 +11,8 @@ Feature: Changelog Listing
     And a changelog entry exists with ID "list-0002" and title "Second entry"
     When I run "change_log ls"
     Then the command should succeed
-    And the output should contain "list-000"
-    And the output should contain "list-000"
+    And the output should contain "First entry"
+    And the output should contain "Second entry"
 
   Scenario: List command alias works
     Given a changelog entry exists with ID "list-0001" and title "First entry"
