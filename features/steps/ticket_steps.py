@@ -112,6 +112,24 @@ def extract_created_id(stdout):
         return output
 
 
+def _track_created_ticket(context, command, result):
+    """Track ticket ID and path from create command JSON output."""
+    if 'ticket create' not in command or result.returncode != 0:
+        return
+    created_id = extract_created_id(result.stdout)
+    if not created_id:
+        return
+    context.last_created_id = created_id
+    try:
+        data = json.loads(result.stdout.strip())
+        if 'full_path' in data:
+            if not hasattr(context, 'tickets'):
+                context.tickets = {}
+            context.tickets[created_id] = Path(data['full_path'])
+    except (json.JSONDecodeError, KeyError):
+        pass
+
+
 # ============================================================================
 # Given Steps
 # ============================================================================
@@ -378,20 +396,7 @@ def step_run_command(context, command):
     context.returncode = result.returncode
     context.last_command = command
 
-    # If this was a create command, track the created ticket ID from JSON output
-    if 'ticket create' in command and result.returncode == 0:
-        created_id = extract_created_id(result.stdout)
-        if created_id:
-            context.last_created_id = created_id
-            # Also try to store the full_path for later lookups
-            try:
-                data = json.loads(result.stdout.strip())
-                if 'full_path' in data:
-                    if not hasattr(context, 'tickets'):
-                        context.tickets = {}
-                    context.tickets[created_id] = Path(data['full_path'])
-            except (json.JSONDecodeError, KeyError):
-                pass
+    _track_created_ticket(context, command, result)
 
 
 # ============================================================================
@@ -768,19 +773,7 @@ def run_with_plugin_path(context, command):
     context.returncode = result.returncode
     context.last_command = command
 
-    # If this was a create command, track the created ticket ID from JSON output
-    if 'ticket create' in command and result.returncode == 0:
-        created_id = extract_created_id(result.stdout)
-        if created_id:
-            context.last_created_id = created_id
-            try:
-                data = json.loads(result.stdout.strip())
-                if 'full_path' in data:
-                    if not hasattr(context, 'tickets'):
-                        context.tickets = {}
-                    context.tickets[created_id] = Path(data['full_path'])
-            except (json.JSONDecodeError, KeyError):
-                pass
+    _track_created_ticket(context, command, result)
 
 
 @given(r'a plugin "(?P<name>[^"]+)" that outputs "(?P<output>[^"]+)"')
