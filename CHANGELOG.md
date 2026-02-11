@@ -2,25 +2,35 @@
 
 ## [Unreleased]
 
-### Removed
-- Removed `migrate-beads` command
-
 ### Changed
-- Ticket filenames are now derived from the title (e.g., `my-ticket-title.md`) instead of the ID
-- Ticket IDs are now 25-character random lowercase alphanumeric strings stored in frontmatter
-- Title is now stored in YAML frontmatter (`title: "..."`) instead of as a `# heading` in body
-- `create` command outputs JSONL (with id, title, full_path, and all fields) instead of just the ID
-- `query` command always includes `full_path` in output (removed `--include-full-path` flag)
-- ID resolution now searches frontmatter `id:` fields instead of matching filenames
+- **BREAKING**: Complete transformation from ticket system (`tk`) to changelog system (`change_log`)
+- Storage directory changed from `.tickets/` to `./change_log/`
+- Environment variable changed from `TICKETS_DIR` to `CHANGE_LOG_DIR`
+- Pager variable changed from `TICKET_PAGER` to `CHANGE_LOG_PAGER`
+- Filenames changed from title-based slugs to ISO8601 timestamps (`YYYY-MM-DD_HH-MM-SSZ.md`)
+- `create` command now requires `--impact` (1-5) instead of `--priority` (0-4)
+- Entry types changed to: feature, bug_fix, refactor, chore, breaking_change, docs, default
+- `create` outputs JSON (single line) instead of JSONL
+- `ls` output format changed to show impact and type: `ID [I3][feature] Title`
 
 ### Added
-- Plugin system: executables named `tk-<cmd>` or `ticket-<cmd>` in PATH are invoked automatically
-- `super` command to bypass plugins and run built-in commands directly
-- `TICKETS_DIR` and `TK_SCRIPT` environment variables exported for plugins
-- `help` command lists installed plugins with descriptions
-- Plugin metadata: `# tk-plugin:` comment for scripts, `--tk-describe` flag for binaries
-- Multi-package distribution: `ticket-core`, `ticket-extras`, and individual plugin packages
-- CI scripts for publishing to Homebrew tap and AUR
+- `--impact` flag (required, 1-5) for classifying change significance
+- `--desc` flag for entry description (included in query JSONL output)
+- `--dirs` flag for affected directories
+- `--ap` flag for anchor point references (repeatable, key=value)
+- `--note-id` flag for note ID references (repeatable, key=value)
+- `created_iso` frontmatter field (explicit ISO8601 format)
+
+### Removed
+- All ticket commands: `start`, `close`, `reopen`, `status`, `dep`, `undep`, `link`, `unlink`, `ready`, `blocked`, `closed`
+- Plugin system (`tk-*`/`ticket-*` external command dispatch, `super` command)
+- Dependency tracking, status workflows, linking between entries
+- `--priority`, `--design`, `--acceptance`, `--external-ref`, `--parent` create flags
+- `--assignee` filter flag (replaced by `--author` on create only)
+- `-T`/`--tag` filter flag on listing commands
+- `--status` filter flag on `ls`
+- Homebrew and AUR packaging (scripts, PKGBUILDs, CI workflows)
+- GitHub Actions workflows
 
 ## [0.3.2] - 2026-02-03
 
