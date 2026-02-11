@@ -154,7 +154,7 @@ Single bash script (`change_log`) with:
 | 02 | test_suite | Rewrite BDD tests for all changelog commands |
 | 03 | repo_cleanup_and_docs | Remove dead files, update README.md, CLAUDE.md, CHANGELOG.md |
 
-See individual task file(s) in `./tasks/todo/` for details.
+See individual task file(s) in `./tasks/` for details.
 
 ## Callouts
 
@@ -169,3 +169,7 @@ See individual task file(s) in `./tasks/todo/` for details.
 ### Phase 02: test_suite
 
 - No callouts during 02_test_suite.md.
+
+### Phase 03: repo_cleanup_and_docs
+
+- No callouts during 03_repo_cleanup_and_docs.md.
