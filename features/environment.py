@@ -17,7 +17,7 @@ def before_scenario(context, scenario):
     context.test_dir = tempfile.mkdtemp(prefix='changelog_test_')
 
     # Initialize tracking
-    context.tickets = {}
+    context.entries = {}
     context.last_created_id = None
     context.stdout = ''
     context.stderr = ''

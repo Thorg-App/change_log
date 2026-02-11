@@ -30,7 +30,7 @@ def create_entry(context, entry_id, title, impact=3, entry_type="default", targe
     """Create a changelog entry fixture file.
 
     Uses deterministic timestamp filenames: 2024-01-01_00-00-{counter:02d}Z.md
-    where counter is len(context.tickets) at call time.
+    where counter is len(context.entries) at call time.
 
     Args:
         target_dir: Override directory. Defaults to <test_dir>/change_log/.
@@ -38,7 +38,7 @@ def create_entry(context, entry_id, title, impact=3, entry_type="default", targe
     changelog_dir = Path(target_dir) if target_dir else Path(context.test_dir) / 'change_log'
     changelog_dir.mkdir(parents=True, exist_ok=True)
 
-    counter = len(context.tickets)
+    counter = len(context.entries)
     filename = f'2024-01-01_00-00-{counter:02d}Z.md'
     entry_path = changelog_dir / filename
 
@@ -54,17 +54,17 @@ impact: {impact}
 '''
     entry_path.write_text(content)
 
-    context.tickets[entry_id] = entry_path
+    context.entries[entry_id] = entry_path
     return entry_path
 
 
 def find_entry_file(context, entry_id):
     """Find an entry file by searching frontmatter id: field.
 
-    First checks context.tickets dict, then falls back to scanning files.
+    First checks context.entries dict, then falls back to scanning files.
     """
-    if hasattr(context, 'tickets') and entry_id in context.tickets:
-        path = context.tickets[entry_id]
+    if hasattr(context, 'entries') and entry_id in context.entries:
+        path = context.entries[entry_id]
         if path.exists():
             return path
 
@@ -112,7 +112,7 @@ def _track_created_entry(context, command, result):
         return
     context.last_created_id = created_id
     if 'full_path' in data:
-        context.tickets[created_id] = Path(data['full_path'])
+        context.entries[created_id] = Path(data['full_path'])
 
 
 def _run_command(context, command, env_override=None, input_text=None):
