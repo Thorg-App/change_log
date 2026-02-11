@@ -78,7 +78,7 @@ For new functionality (not extracted from core):
 BDD tests using [Behave](https://behave.readthedocs.io/). Run with `make test` (requires `uv`).
 
 - Feature files: `features/*.feature` - Gherkin scenarios covering all commands
-- Step definitions: `features/steps/ticket_steps.py`
+- Step definitions: `features/steps/changelog_steps.py`
 - CI runs tests on push to master and all PRs
 
 When adding new commands or flags, add corresponding scenarios to the appropriate feature file.

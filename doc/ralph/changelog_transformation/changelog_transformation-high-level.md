@@ -155,3 +155,17 @@ Single bash script (`change_log`) with:
 | 03 | repo_cleanup_and_docs | Remove dead files, update README.md, CLAUDE.md, CHANGELOG.md |
 
 See individual task file(s) in `./tasks/todo/` for details.
+
+## Callouts
+
+### Phase 01: core_script
+
+| What | Why Called Out | Why It Was Done |
+|------|---------------|-----------------|
+| `_sed_i()` and `update_yaml_field()` removed | Dead code carried from `ticket` -- no `change_log` command modifies existing frontmatter | Identified by Pareto analysis, removed by DRY fixer to reduce maintenance surface |
+| Pre-existing `json_escape()` double-escaping | Titles/descs with embedded double quotes produce `\\\"` in JSONL instead of `\"` | Inherited from original `ticket` script, not a regression; fixing requires awk rewrite beyond scope |
+| Pre-existing unhelpful error on missing flag argument | `change_log create "Test" --impact` (no value) shows `$2: unbound variable` due to `set -u` | Inherited from original script; fails correctly (exit 1) but message is confusing; deferred |
+
+### Phase 02: test_suite
+
+- No callouts during 02_test_suite.md.

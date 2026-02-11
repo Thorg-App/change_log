@@ -1,0 +1,548 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# change_log - git-backed changelog for AI agents
+# Stores markdown files with YAML frontmatter in ./change_log/
+
+# Find change_log directory by walking parent directories, auto-create at git root
+find_change_log_dir() {
+    # 1. Env var override
+    if [[ -n "${CHANGE_LOG_DIR:-}" ]]; then
+        echo "$CHANGE_LOG_DIR"
+        return 0
+    fi
+
+    # 2. Walk parents looking for change_log/
+    local dir="$PWD"
+    while [[ "$dir" != "/" ]]; do
+        if [[ -d "$dir/change_log" ]]; then
+            echo "$dir/change_log"
+            return 0
+        fi
+        dir=$(dirname "$dir")
+    done
+
+    # Check root too
+    [[ -d "/change_log" ]] && { echo "/change_log"; return 0; }
+
+    # 3. Auto-create at git repo root
+    local git_root
+    if git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
+        mkdir -p "$git_root/change_log"
+        echo "$git_root/change_log"
+        return 0
+    fi
+
+    # 4. Not found and not in a git repo
+    echo "Error: no change_log directory found and not in a git repository" >&2
+    return 1
+}
+
+CHANGE_LOG_PAGER="${CHANGE_LOG_PAGER:-${PAGER:-}}"
+
+# Prefer ripgrep if available, fall back to grep
+if command -v rg &>/dev/null; then
+    _grep() { rg "$@"; }
+else
+    _grep() { grep "$@"; }
+fi
+
+# Portable ISO date (GNU date supports -Iseconds, BSD date does not)
+_iso_date() {
+    date -u +%Y-%m-%dT%H:%M:%SZ
+}
+
+# Generate 25-char random lowercase alphanumeric ID
+generate_id() {
+    local id
+    id=$(LC_ALL=C tr -dc 'a-z0-9' < /dev/urandom | head -c 25 || true)
+    printf '%s' "$id"
+}
+
+# Generate ISO8601 UTC timestamp filename stem (YYYY-MM-DD_HH-MM-SSZ)
+timestamp_filename() {
+    date -u +%Y-%m-%d_%H-%M-%SZ
+}
+
+# Extract id from a file's YAML frontmatter
+id_from_file() {
+    yaml_field "$1" "id"
+}
+
+# Ensure change_log directory exists
+ensure_dir() {
+    mkdir -p "$CHANGE_LOG_DIR"
+}
+
+# List all entry files, most-recent-first (one path per line).
+# Returns 1 if no entries exist.
+_sorted_entries() {
+    local md_files
+    md_files=("$CHANGE_LOG_DIR"/*.md)
+    [[ ! -f "${md_files[0]}" ]] && return 1
+    printf '%s\n' "${md_files[@]}" | sort -r
+}
+
+# Get entry file path by searching frontmatter id: fields (supports partial ID matching)
+entry_path() {
+    local search="$1"
+    # Trim leading/trailing whitespace (handles Claude/agent quirks)
+    read -r search <<< "$search"
+
+    # Guard: no .md files means no entries
+    local md_files
+    md_files=("$CHANGE_LOG_DIR"/*.md)
+    if [[ ! -f "${md_files[0]}" ]]; then
+        echo "Error: entry '$search' not found" >&2
+        return 1
+    fi
+
+    # Single awk pass: collect all id-to-filename mappings, then resolve
+    local result
+    result=$(awk -v search="$search" '
+    FNR==1 {
+        if (prev_file && id != "") {
+            if (id == search) { exact_count++; exact_file = prev_file }
+            else if (index(id, search) > 0) { partial_count++; partial_file = prev_file }
+        }
+        id = ""; in_front = 0; prev_file = FILENAME
+    }
+    /^---$/ { in_front = !in_front; next }
+    in_front && /^id:/ { id = substr($0, 5); gsub(/^ +| +$/, "", id) }
+    END {
+        if (prev_file && id != "") {
+            if (id == search) { exact_count++; exact_file = prev_file }
+            else if (index(id, search) > 0) { partial_count++; partial_file = prev_file }
+        }
+        if (exact_count == 1) { print exact_file; exit 0 }
+        if (exact_count > 1) { printf "Error: ambiguous ID \x27%s\x27 matches multiple entries\n", search > "/dev/stderr"; exit 1 }
+        if (partial_count == 1) { print partial_file; exit 0 }
+        if (partial_count > 1) { printf "Error: ambiguous ID \x27%s\x27 matches multiple entries\n", search > "/dev/stderr"; exit 1 }
+        printf "Error: entry \x27%s\x27 not found\n", search > "/dev/stderr"; exit 1
+    }
+    ' "${md_files[@]}")
+
+    local rc=$?
+    if [[ $rc -ne 0 ]]; then
+        return 1
+    fi
+    echo "$result"
+}
+
+# Extract YAML field value
+yaml_field() {
+    local file="$1"
+    local field="$2"
+    sed -n '/^---$/,/^---$/p' "$file" | _grep "^${field}:" | sed "s/^${field}: *//"
+}
+
+# Valid entry types
+VALID_TYPES="feature bug_fix refactor chore breaking_change docs default"
+
+# Generate JSONL from one or more changelog entry files
+# Usage: _file_to_jsonl file1.md [file2.md ...]
+_file_to_jsonl() {
+    awk '
+    BEGIN { FS=": "; in_front=0 }
+    FNR==1 {
+        if (prev_file) emit()
+        field_count=0; in_front=0; in_map=0; map_key=""
+        prev_file=FILENAME
+    }
+    /^---$/ {
+        # End of map if we were in one
+        if (in_map) { in_map=0; map_key="" }
+        in_front = !in_front
+        next
+    }
+    # Indented line (map continuation) while in frontmatter
+    in_front && /^  [a-zA-Z]/ {
+        if (in_map && map_key != "") {
+            # Parse "  key: value"
+            line = $0
+            sub(/^  /, "", line)
+            k = line; sub(/:.*/, "", k)
+            v = line; sub(/^[^:]+: */, "", v)
+            # Append to map_data for this map_key
+            map_pair_count[map_key]++
+            idx = map_pair_count[map_key]
+            map_pairs_k[map_key, idx] = k
+            map_pairs_v[map_key, idx] = v
+        }
+        next
+    }
+    # Top-level field
+    in_front && /^[a-zA-Z]/ {
+        # If we were in a map, close it
+        if (in_map) { in_map=0; map_key="" }
+
+        key = $1
+        val = substr($0, length($1) + 3)
+        gsub(/^ +| +$/, "", val)
+
+        # Strip trailing colon from key (happens when FS=": " does not match,
+        # e.g. "ap:" with no value produces $1="ap:")
+        sub(/:$/, "", key)
+
+        # Check if this is a map field (value is empty or just whitespace)
+        if (val == "" || val ~ /^[[:space:]]*$/) {
+            in_map = 1
+            map_key = key
+            field_count++
+            field_keys[field_count] = key
+            field_vals[field_count] = "__MAP__"
+            map_pair_count[key] = 0
+            next
+        }
+
+        field_count++
+        field_keys[field_count] = key
+        field_vals[field_count] = val
+    }
+    function json_escape(s) {
+        gsub(/\\/, "\\\\\\\\", s)
+        gsub(/"/, "\\\"", s)
+        return s
+    }
+    function emit(    i, key, val, n, j, items, mk, mv, first) {
+        if (field_count > 0) {
+            printf "{"
+            first = 1
+            for (i = 1; i <= field_count; i++) {
+                if (!first) printf ","
+                first = 0
+                key = field_keys[i]
+                val = field_vals[i]
+
+                if (val == "__MAP__") {
+                    # Emit as JSON object
+                    printf "\"%s\":{", json_escape(key)
+                    for (j = 1; j <= map_pair_count[key]; j++) {
+                        if (j > 1) printf ","
+                        mk = map_pairs_k[key, j]
+                        mv = map_pairs_v[key, j]
+                        printf "\"%s\":\"%s\"", json_escape(mk), json_escape(mv)
+                    }
+                    printf "}"
+                } else if (val ~ /^\[.*\]$/) {
+                    # Array
+                    gsub(/^\[|\]$/, "", val)
+                    n = split(val, items, ", *")
+                    printf "\"%s\":[", json_escape(key)
+                    for (j = 1; j <= n; j++) {
+                        if (j > 1) printf ","
+                        gsub(/^ +| +$/, "", items[j])
+                        if (items[j] != "") printf "\"%s\"", json_escape(items[j])
+                    }
+                    printf "]"
+                } else if (key == "impact") {
+                    # Numeric field
+                    if (val ~ /^".*"$/) val = substr(val, 2, length(val) - 2)
+                    printf "\"%s\":%s", json_escape(key), val
+                } else {
+                    # Scalar string
+                    if (val ~ /^".*"$/) val = substr(val, 2, length(val) - 2)
+                    printf "\"%s\":\"%s\"", json_escape(key), json_escape(val)
+                }
+            }
+            printf ",\"full_path\":\"%s\"", json_escape(prev_file)
+            printf "}\n"
+        }
+        # Reset map state for next file
+        delete map_pair_count
+        delete map_pairs_k
+        delete map_pairs_v
+    }
+    END { if (prev_file) emit() }
+    ' "$@"
+}
+
+cmd_create() {
+    ensure_dir
+
+    local title="" desc="" impact="" entry_type="default" author="" tags="" dirs=""
+    local -a ap_pairs=() note_id_pairs=()
+
+    # Default author to git user.name if available
+    author=$(git config user.name 2>/dev/null || true)
+
+    # Parse args
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --impact)
+                impact="$2"; shift 2 ;;
+            -t|--type)
+                entry_type="$2"; shift 2 ;;
+            --desc)
+                desc="$2"; shift 2 ;;
+            -a|--author)
+                author="$2"; shift 2 ;;
+            --tags)
+                tags="$2"; shift 2 ;;
+            --dirs)
+                dirs="$2"; shift 2 ;;
+            --ap)
+                [[ "$2" == *=* ]] || { echo "Error: --ap requires key=value format" >&2; return 1; }
+                ap_pairs+=("$2"); shift 2 ;;
+            --note-id)
+                [[ "$2" == *=* ]] || { echo "Error: --note-id requires key=value format" >&2; return 1; }
+                note_id_pairs+=("$2"); shift 2 ;;
+            -*)
+                echo "Unknown option: $1" >&2; return 1 ;;
+            *)
+                title="$1"; shift ;;
+        esac
+    done
+
+    # Validation: impact is required
+    if [[ -z "$impact" ]]; then
+        echo "Error: --impact is required (1-5)" >&2
+        return 1
+    fi
+
+    # Validation: impact must be 1-5
+    if ! [[ "$impact" =~ ^[1-5]$ ]]; then
+        echo "Error: --impact must be 1-5, got '$impact'" >&2
+        return 1
+    fi
+
+    # Validation: type must be in allowed list
+    local valid_type=0
+    for vt in $VALID_TYPES; do
+        [[ "$entry_type" == "$vt" ]] && valid_type=1
+    done
+    if [[ $valid_type -eq 0 ]]; then
+        echo "Error: invalid type '$entry_type'. Valid: feature, bug_fix, refactor, chore, breaking_change, docs, default" >&2
+        return 1
+    fi
+
+    title="${title:-Untitled}"
+    local id filename file now escaped_title escaped_desc
+    id=$(generate_id)
+    filename="$(timestamp_filename).md"
+
+    # Handle collision: if two creates happen in the same second, wait and regenerate
+    # This is sufficient for a single-user CLI tool
+    if [[ -f "$CHANGE_LOG_DIR/$filename" ]]; then
+        sleep 1
+        filename="$(timestamp_filename).md"
+    fi
+
+    file="$CHANGE_LOG_DIR/$filename"
+    now=$(_iso_date)
+    escaped_title="${title//\"/\\\"}"
+
+    {
+        echo "---"
+        echo "id: $id"
+        echo "title: \"$escaped_title\""
+        if [[ -n "$desc" ]]; then
+            escaped_desc="${desc//\"/\\\"}"
+            echo "desc: \"$escaped_desc\""
+        fi
+        echo "created_iso: $now"
+        echo "type: $entry_type"
+        echo "impact: $impact"
+        [[ -n "$author" ]] && echo "author: $author"
+        if [[ -n "$tags" ]]; then
+            echo "tags: [${tags//,/, }]"
+        fi
+        if [[ -n "$dirs" ]]; then
+            echo "dirs: [${dirs//,/, }]"
+        fi
+        # ap: only if pairs provided
+        if [[ ${#ap_pairs[@]} -gt 0 ]]; then
+            echo "ap:"
+            for pair in "${ap_pairs[@]}"; do
+                local key="${pair%%=*}"
+                local val="${pair#*=}"
+                echo "  $key: $val"
+            done
+        fi
+        # note_id: only if pairs provided
+        if [[ ${#note_id_pairs[@]} -gt 0 ]]; then
+            echo "note_id:"
+            for pair in "${note_id_pairs[@]}"; do
+                local key="${pair%%=*}"
+                local val="${pair#*=}"
+                echo "  $key: $val"
+            done
+        fi
+        echo "---"
+        echo ""
+    } > "$file"
+
+    _file_to_jsonl "$file"
+}
+
+cmd_show() {
+    if [[ $# -lt 1 ]]; then
+        echo "Usage: $(basename "$0") show <id>" >&2
+        return 1
+    fi
+
+    local file
+    file=$(entry_path "$1") || return 1
+
+    if [[ -t 1 && -n "$CHANGE_LOG_PAGER" ]]; then
+        read -r -a pager_cmd <<<"$CHANGE_LOG_PAGER"
+        "${pager_cmd[@]}" "$file"
+    else
+        cat "$file"
+    fi
+}
+
+cmd_edit() {
+    if [[ $# -lt 1 ]]; then
+        echo "Usage: $(basename "$0") edit <id>" >&2
+        return 1
+    fi
+
+    local file
+    file=$(entry_path "$1") || return 1
+
+    if [ -t 0 ] && [ -t 1 ]; then
+        "${EDITOR:-vi}" "$file"
+    else
+        echo "Edit entry file: $file"
+    fi
+}
+
+cmd_add_note() {
+    if [[ $# -lt 1 ]]; then
+        echo "Usage: $(basename "$0") add-note <id> [note text]" >&2
+        return 1
+    fi
+
+    local file
+    file=$(entry_path "$1") || return 1
+    shift
+
+    local note
+    if [[ $# -gt 0 ]]; then
+        note="$*"
+    elif [[ ! -t 0 ]]; then
+        note=$(cat)
+    else
+        echo "Error: no note provided" >&2
+        return 1
+    fi
+
+    local timestamp
+    timestamp=$(_iso_date)
+
+    # Add Notes section if missing, then append timestamped note
+    if ! _grep -q '^## Notes' "$file"; then
+        printf '\n## Notes\n' >> "$file"
+    fi
+    printf '\n**%s**\n\n%s\n' "$timestamp" "$note" >> "$file"
+
+    echo "Note added to $(id_from_file "$file")"
+}
+
+cmd_ls() {
+    local limit=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --limit=*) limit="${1#--limit=}"; shift ;;
+            --limit) limit="$2"; shift 2 ;;
+            *) echo "Unknown option: $1" >&2; return 1 ;;
+        esac
+    done
+
+    local -a sorted_files
+    mapfile -t sorted_files < <(_sorted_entries) || return 0
+
+    # Apply limit
+    if [[ -n "$limit" ]]; then
+        sorted_files=("${sorted_files[@]:0:$limit}")
+    fi
+
+    # Single awk pass over the selected files
+    awk '
+    BEGIN { FS=": "; in_front=0 }
+    FNR==1 {
+        if (prev_file) emit()
+        id=""; title=""; impact=""; entry_type=""; in_front=0
+        prev_file=FILENAME
+    }
+    /^---$/ { in_front = !in_front; next }
+    in_front && /^id:/ { id = $2 }
+    in_front && /^impact:/ { impact = $2 }
+    in_front && /^type:/ { entry_type = $2 }
+    in_front && /^title:/ { title = substr($0, 8); gsub(/^ +| +$/, "", title); if (title ~ /^".*"$/) title = substr(title, 2, length(title) - 2) }
+    END { if (prev_file) emit() }
+    function emit() {
+        if (id != "") {
+            printf "%-8s [I%s][%s] %s\n", substr(id, 1, 8), impact, entry_type, title
+        }
+    }
+    ' "${sorted_files[@]}"
+}
+
+cmd_query() {
+    local filter="${1:-}"
+
+    local -a sorted_files
+    mapfile -t sorted_files < <(_sorted_entries) || return 0
+
+    local json_output
+    json_output=$(_file_to_jsonl "${sorted_files[@]}")
+
+    if [[ -n "$filter" ]]; then
+        echo "$json_output" | jq -c "select($filter)"
+    else
+        echo "$json_output"
+    fi
+}
+
+cmd_help() {
+    cat << 'EOF'
+change_log - git-backed changelog for AI agents
+
+Usage: change_log <command> [args]
+
+Commands:
+  create [title] [options]  Create changelog entry (prints JSON)
+    --impact N              Impact level 1-5 (required)
+    -t, --type TYPE         Type (feature|bug_fix|refactor|chore|breaking_change|docs|default) [default: default]
+    --desc TEXT             Description text
+    -a, --author NAME       Author [default: git user.name]
+    --tags TAG,TAG,...      Comma-separated tags
+    --dirs DIR,DIR,...      Comma-separated affected directories
+    --ap KEY=VALUE          Anchor point (repeatable)
+    --note-id KEY=VALUE     Note ID reference (repeatable)
+  ls|list [--limit=N]       List entries (most recent first)
+  show <id>                 Display entry (supports partial ID)
+  edit <id>                 Open entry in $EDITOR
+  add-note <id> [text]      Append timestamped note (text or stdin)
+  query [jq-filter]         Output entries as JSONL (requires jq for filter)
+  help                      Show this help
+
+Entries stored as markdown in ./change_log/ (auto-created at git repo root)
+Override directory with CHANGE_LOG_DIR env var
+IDs stored in frontmatter; supports partial ID matching
+EOF
+}
+
+# Initialize change_log dir for commands (skip for help)
+case "${1:-help}" in
+    help|--help|-h) ;;
+    *) CHANGE_LOG_DIR=$(find_change_log_dir) || exit 1 ;;
+esac
+
+# Command dispatch
+case "${1:-help}" in
+    create)   shift; cmd_create "$@" ;;
+    ls|list)  shift; cmd_ls "$@" ;;
+    show)     shift; cmd_show "$@" ;;
+    edit)     shift; cmd_edit "$@" ;;
+    add-note) shift; cmd_add_note "$@" ;;
+    query)    shift; cmd_query "$@" ;;
+    help|--help|-h) cmd_help ;;
+    *)
+        echo "Unknown command: $1" >&2
+        echo "Run 'change_log help' for usage information" >&2
+        exit 1
+        ;;
+esac
