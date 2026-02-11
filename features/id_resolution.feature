@@ -1,71 +1,56 @@
-Feature: Ticket ID Resolution
+Feature: Changelog ID Resolution
   As a user
-  I want to use partial ticket IDs
+  I want to use partial entry IDs
   So that I can work faster without typing full IDs
 
   Background:
-    Given a clean tickets directory
+    Given a clean changelog directory
 
   Scenario: Exact ID match
-    Given a ticket exists with ID "abc-1234" and title "Test ticket"
-    When I run "ticket show abc-1234"
+    Given a changelog entry exists with ID "abc-1234" and title "Test entry"
+    When I run "change_log show abc-1234"
     Then the command should succeed
     And the output should contain "id: abc-1234"
 
   Scenario: Partial ID match by suffix
-    Given a ticket exists with ID "abc-1234" and title "Test ticket"
-    When I run "ticket show 1234"
+    Given a changelog entry exists with ID "abc-1234" and title "Test entry"
+    When I run "change_log show 1234"
     Then the command should succeed
     And the output should contain "id: abc-1234"
 
   Scenario: Partial ID match by prefix
-    Given a ticket exists with ID "abc-1234" and title "Test ticket"
-    When I run "ticket show abc"
+    Given a changelog entry exists with ID "abc-1234" and title "Test entry"
+    When I run "change_log show abc"
     Then the command should succeed
     And the output should contain "id: abc-1234"
 
   Scenario: Partial ID match by substring
-    Given a ticket exists with ID "abc-1234" and title "Test ticket"
-    When I run "ticket show c-12"
+    Given a changelog entry exists with ID "abc-1234" and title "Test entry"
+    When I run "change_log show c-12"
     Then the command should succeed
     And the output should contain "id: abc-1234"
 
   Scenario: Ambiguous ID error
-    Given a ticket exists with ID "abc-1234" and title "First ticket"
-    And a ticket exists with ID "abc-5678" and title "Second ticket"
-    When I run "ticket show abc"
+    Given a changelog entry exists with ID "abc-1234" and title "First entry"
+    And a changelog entry exists with ID "abc-5678" and title "Second entry"
+    When I run "change_log show abc"
     Then the command should fail
-    And the output should contain "Error: ambiguous ID 'abc' matches multiple tickets"
+    And the output should contain "Error: ambiguous ID 'abc' matches multiple entries"
 
   Scenario: Non-existent ID error
-    When I run "ticket show nonexistent"
+    When I run "change_log show nonexistent"
     Then the command should fail
-    And the output should contain "Error: ticket 'nonexistent' not found"
+    And the output should contain "Error: entry 'nonexistent' not found"
 
   Scenario: Exact match takes precedence
-    Given a ticket exists with ID "abc" and title "Short ID ticket"
-    And a ticket exists with ID "abc-1234" and title "Long ID ticket"
-    When I run "ticket show abc"
+    Given a changelog entry exists with ID "abc" and title "Short ID entry"
+    And a changelog entry exists with ID "abc-1234" and title "Long ID entry"
+    When I run "change_log show abc"
     Then the command should succeed
     And the output should contain "id: abc"
-    And the output should contain "Short ID ticket"
+    And the output should contain "Short ID entry"
 
-  Scenario: ID resolution works with status command
-    Given a ticket exists with ID "test-9999" and title "Test ticket"
-    When I run "ticket status 9999 in_progress"
+  Scenario: ID resolution works with add-note command
+    Given a changelog entry exists with ID "test-9999" and title "Test entry"
+    When I run "change_log add-note 9999 'test note'"
     Then the command should succeed
-    And ticket "test-9999" should have field "status" with value "in_progress"
-
-  Scenario: ID resolution works with dep command
-    Given a ticket exists with ID "dep-aaaa" and title "Main"
-    And a ticket exists with ID "dep-bbbb" and title "Dependency"
-    When I run "ticket dep aaaa bbbb"
-    Then the command should succeed
-    And ticket "dep-aaaa" should have "bbbb" in deps
-
-  Scenario: ID resolution works with link command
-    Given a ticket exists with ID "link-cccc" and title "First"
-    And a ticket exists with ID "link-dddd" and title "Second"
-    When I run "ticket link cccc dddd"
-    Then the command should succeed
-    And ticket "link-cccc" should have "link-dddd" in links
