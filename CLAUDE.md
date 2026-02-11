@@ -36,7 +36,6 @@ Dependencies: bash, sed, awk, find. Optional: ripgrep (faster grep).
 plugins/
 ├── README.md              # Plugin conventions documentation
 ├── ticket-query           # Extracted from core (requires jq)
-├── ticket-migrate-beads   # Extracted from core (requires jq)
 └── ...
 
 pkg/
@@ -105,7 +104,6 @@ Example:
 
 ### Plugins
 - ticket-query 1.1.0: Added --format flag
-- ticket-migrate-beads 1.0.1: Fixed date parsing
 ```
 
 ### What Doesn't Need Logging

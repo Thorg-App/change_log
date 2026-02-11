@@ -2,8 +2,6 @@
 
 The git-backed issue tracker for AI agents. Rooted in the Unix Philosophy, `tk` is inspired by Joe Armstrong's [Minimal Viable Program](https://joearms.github.io/published/2014-06-25-minimal-viable-program.html) with additional quality of life features for managing and querying against complex issue dependency graphs.
 
-`tk` was written as a full replacement for [beads](https://github.com/steveyegge/beads). It shares many similar commands but without the need for keeping a SQLite file in sync or a rogue background daemon mangling your changes. It ships with a `migrate-beads` command to make this a smooth transition.
-
 Tickets are markdown files with YAML frontmatter in `.tickets/`. This allows AI agents to easily search them for relevant content without dumping ten thousand character JSONL lines into their context window.
 
 Ticket filenames are derived from the title (e.g., `add-sse-connection-management.md`) while a random 25-character ID in the YAML frontmatter serves as the stable identifier for dependencies, links, and lookups.
@@ -79,7 +77,6 @@ Commands:
   edit <id>                Open ticket in $EDITOR
   add-note <id> [text]     Append timestamped note (or pipe via stdin)
   query [jq-filter]        Output tickets as JSONL (includes full_path)
-  migrate-beads            Import tickets from .beads/issues.jsonl
   super <cmd> [args]       Bypass plugins, run built-in command directly
 
 Searches parent directories for .tickets/ (override with TICKETS_DIR env var)
@@ -133,30 +130,6 @@ If you have `uv` [installed](https://docs.astral.sh/uv/getting-started/installat
 ```sh
 make test
 ```
-
-## Migrating from Beads
-
-```bash
-tk migrate-beads
-
-# review new files if you like
-git status
-
-# check state matches expectations
-tk ready
-tk blocked
-
-# compare against
-bd ready
-bd blocked
-
-# all good, let's go
-git rm -rf .beads
-git add .tickets
-git commit -am "ditch beads"
-```
-
-For a thorough system-wide Beads cleanup, see [banteg's uninstall script](https://gist.github.com/banteg/1a539b88b3c8945cd71e4b958f319d8d).
 
 ## License
 

@@ -106,7 +106,7 @@ generate_plugin_pkgbuild() {
     # Determine dependencies
     local extra_deps=""
     case "$plugin_name" in
-        query|migrate-beads) extra_deps="'jq'" ;;
+        query) extra_deps="'jq'" ;;
     esac
 
     mkdir -p "$output_dir"
