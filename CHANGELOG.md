@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Removed
+- Removed `migrate-beads` command
+
 ### Changed
 - Ticket filenames are now derived from the title (e.g., `my-ticket-title.md`) instead of the ID
 - Ticket IDs are now 25-character random lowercase alphanumeric strings stored in frontmatter
@@ -57,7 +60,6 @@
 - `--parent` flag for `create` command to set parent ticket
 - `link`/`unlink` commands for symmetric ticket relationships
 - `show` command displays parent title and linked tickets
-- `migrate-beads` now imports parent-child and related dependencies
 
 ## [0.1.1] - 2026-01-02
 
