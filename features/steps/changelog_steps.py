@@ -26,13 +26,16 @@ def get_script(context):
     return str(Path(context.project_dir) / 'change_log')
 
 
-def create_entry(context, entry_id, title, impact=3, entry_type="default"):
-    """Create a changelog entry fixture file in <test_dir>/change_log/.
+def create_entry(context, entry_id, title, impact=3, entry_type="default", target_dir=None):
+    """Create a changelog entry fixture file.
 
     Uses deterministic timestamp filenames: 2024-01-01_00-00-{counter:02d}Z.md
     where counter is len(context.tickets) at call time.
+
+    Args:
+        target_dir: Override directory. Defaults to <test_dir>/change_log/.
     """
-    changelog_dir = Path(context.test_dir) / 'change_log'
+    changelog_dir = Path(target_dir) if target_dir else Path(context.test_dir) / 'change_log'
     changelog_dir.mkdir(parents=True, exist_ok=True)
 
     counter = len(context.tickets)
@@ -90,6 +93,18 @@ def extract_created_id(stdout):
         return output
 
 
+def _parse_jsonl(stdout):
+    """Parse JSONL output into a list of dicts, skipping blank lines.
+
+    Single source of truth for 'how to parse JSONL from command output'.
+    """
+    entries = []
+    for line in stdout.strip().split('\n'):
+        if line.strip():
+            entries.append(json.loads(line))
+    return entries
+
+
 def _track_created_entry(context, command, result):
     """Track entry ID and path from create command JSON output."""
     if 'change_log create' not in command or result.returncode != 0:
@@ -108,12 +123,15 @@ def _track_created_entry(context, command, result):
         pass
 
 
-def _run_command(context, command, env_override=None):
+def _run_command(context, command, env_override=None, input_text=None):
     """DRY helper that consolidates the common subprocess execution pattern.
 
     Replaces 'change_log ' prefix with actual script path.
     Stores stdout/stderr/returncode on context.
     Calls _track_created_entry for create commands.
+
+    Args:
+        input_text: If provided, piped to stdin. Otherwise stdin is /dev/null.
     """
     command = command.replace('\\"', '"')
     script = get_script(context)
@@ -125,14 +143,16 @@ def _run_command(context, command, env_override=None):
     if env_override:
         env.update(env_override)
 
+    stdin_kwargs = {'input': input_text} if input_text is not None else {'stdin': subprocess.DEVNULL}
+
     result = subprocess.run(
         cmd,
         shell=True,
         cwd=cwd,
         capture_output=True,
         text=True,
-        stdin=subprocess.DEVNULL,
-        env=env
+        env=env,
+        **stdin_kwargs
     )
 
     context.result = result
@@ -206,23 +226,8 @@ def step_in_subdirectory(context, subdir):
 @given(r'a separate changelog directory exists at "(?P<dir_path>[^"]+)" with entry "(?P<entry_id>[^"]+)" titled "(?P<title>[^"]+)"')
 def step_separate_changelog_dir(context, dir_path, entry_id, title):
     """Create a separate changelog directory with an entry."""
-    changelog_dir = Path(context.test_dir) / dir_path
-    changelog_dir.mkdir(parents=True, exist_ok=True)
-
-    filename = '2024-01-01_00-00-00Z.md'
-    entry_path = changelog_dir / filename
-
-    escaped_title = title.replace('"', '\\"')
-    content = f'''---
-id: {entry_id}
-title: "{escaped_title}"
-created_iso: 2024-01-01T00:00:00Z
-type: default
-impact: 3
----
-
-'''
-    entry_path.write_text(content)
+    target_dir = str(Path(context.test_dir) / dir_path)
+    create_entry(context, entry_id, title, target_dir=target_dir)
 
 
 @given(r'the test directory is a git repository')
@@ -249,12 +254,6 @@ def step_run_command_non_tty(context, command):
     _run_command(context, command)
 
 
-@when(r'I run "(?P<command>(?:[^"\\]|\\.)+)" with no stdin')
-def step_run_command_no_stdin(context, command):
-    """Run a command with stdin closed."""
-    _run_command(context, command)
-
-
 @when(r'I run "(?P<command>(?:[^"\\]|\\.)+)" with CHANGE_LOG_DIR set to "(?P<changelog_dir>[^"]+)"')
 def step_run_command_with_env(context, command, changelog_dir):
     """Run a change_log CLI command with custom CHANGE_LOG_DIR."""
@@ -271,28 +270,7 @@ def step_run_command(context, command):
 @when(r'I pipe "(?P<input_text>[^"]+)" to "(?P<command>(?:[^"\\]|\\.)+)"')
 def step_pipe_to_command(context, input_text, command):
     """Pipe text input to a command via stdin."""
-    command = command.replace('\\"', '"')
-    script = get_script(context)
-    cmd = command.replace('change_log ', f'{script} ', 1)
-
-    cwd = getattr(context, 'working_dir', context.test_dir)
-
-    result = subprocess.run(
-        cmd,
-        shell=True,
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-        input=input_text
-    )
-
-    context.result = result
-    context.stdout = result.stdout.strip()
-    context.stderr = result.stderr.strip()
-    context.returncode = result.returncode
-    context.last_command = command
-
-    _track_created_entry(context, command, result)
+    _run_command(context, command, input_text=input_text)
 
 
 # ============================================================================
@@ -350,18 +328,6 @@ def step_output_valid_json_with_id(context):
     assert 'id' in data, f"JSON output missing 'id' field\nData: {data}"
 
 
-@then(r'the output should match an entry ID pattern')
-def step_output_matches_entry_id_pattern(context):
-    """Assert output is valid JSON from create command with id field."""
-    try:
-        data = json.loads(context.stdout)
-    except json.JSONDecodeError as e:
-        raise AssertionError(f"Output is not valid JSON: {context.stdout}\nError: {e}")
-    assert 'id' in data, f"JSON output missing 'id' field\nData: {data}"
-    assert isinstance(data['id'], str) and len(data['id']) > 0, \
-        f"JSON 'id' field is not a non-empty string: {data['id']}"
-
-
 @then(r'the output should match pattern "(?P<pattern>[^"]+)"')
 def step_output_matches_pattern(context, pattern):
     """Assert output matches regex pattern."""
@@ -372,53 +338,35 @@ def step_output_matches_pattern(context, pattern):
 @then(r'the output should be valid JSONL')
 def step_output_valid_jsonl(context):
     """Assert output is valid JSON Lines format."""
-    lines = context.stdout.strip().split('\n')
-    for line in lines:
-        if line.strip():
-            try:
-                json.loads(line)
-            except json.JSONDecodeError as e:
-                raise AssertionError(f"Invalid JSONL line: {line}\nError: {e}")
+    _parse_jsonl(context.stdout)  # raises json.JSONDecodeError on invalid lines
 
 
 @then(r'the JSONL output should have field "(?P<field>[^"]+)"')
 def step_jsonl_has_field(context, field):
-    """Assert JSONL output has a specific field."""
-    lines = context.stdout.strip().split('\n')
-    assert lines, "No JSONL output"
-
-    for line in lines:
-        if line.strip():
-            data = json.loads(line)
-            assert field in data, f"Field '{field}' not found in JSONL\nData: {data}"
-            break
+    """Assert first JSONL line has a specific field."""
+    entries = _parse_jsonl(context.stdout)
+    assert entries, "No JSONL output"
+    assert field in entries[0], f"Field '{field}' not found in JSONL\nData: {entries[0]}"
 
 
 @then(r'every JSONL line should have field "(?P<field>[^"]+)"')
 def step_every_jsonl_line_has_field(context, field):
     """Assert every JSONL line has a specific field."""
-    lines = context.stdout.strip().split('\n')
-    assert lines and lines[0].strip(), "No JSONL output"
-
-    for line in lines:
-        if line.strip():
-            data = json.loads(line)
-            assert field in data, f"Field '{field}' not found in JSONL line\nData: {data}"
+    entries = _parse_jsonl(context.stdout)
+    assert entries, "No JSONL output"
+    for data in entries:
+        assert field in data, f"Field '{field}' not found in JSONL line\nData: {data}"
 
 
 @then(r'the JSONL output should have numeric field "(?P<field>[^"]+)"')
 def step_jsonl_has_numeric_field(context, field):
-    """Assert JSONL output has a specific field with numeric value."""
-    lines = context.stdout.strip().split('\n')
-    assert lines, "No JSONL output"
-
-    for line in lines:
-        if line.strip():
-            data = json.loads(line)
-            assert field in data, f"Field '{field}' not found in JSONL\nData: {data}"
-            assert isinstance(data[field], (int, float)), \
-                f"Field '{field}' is not numeric: {type(data[field]).__name__} = {data[field]}"
-            break
+    """Assert first JSONL line has a specific field with numeric value."""
+    entries = _parse_jsonl(context.stdout)
+    assert entries, "No JSONL output"
+    data = entries[0]
+    assert field in data, f"Field '{field}' not found in JSONL\nData: {data}"
+    assert isinstance(data[field], (int, float)), \
+        f"Field '{field}' is not numeric: {type(data[field]).__name__} = {data[field]}"
 
 
 @then(r'the output line (?P<line_num>\d+) should contain "(?P<text>[^"]+)"')
