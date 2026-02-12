@@ -521,7 +521,9 @@ Commands:
 
 Entries stored as markdown in ./.change_log/ (auto-created at git repo root)
 Override directory with CHANGE_LOG_DIR env var
-IDs stored in frontmatter; supports partial ID matching
+
+- BEFORE_STARTING: query for recent changes to gather the context of recent relevant changes that were made.
+- AFTER_COMPLETION_OF_ITEM: Add change log entry for the completed item with clear title. Concise description and more detailed explanation within the markdown.
 EOF
 }
 
