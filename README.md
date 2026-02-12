@@ -55,7 +55,7 @@ Commands:
   query [jq-filter]         Output entries as JSONL (requires jq for filter)
   help                      Show this help
 
-Entries stored as markdown in ./.change_log/ (auto-created at git repo root)
+Entries stored as markdown in ./.change_log/ (auto-created at nearest .git root)
 Override directory with CHANGE_LOG_DIR env var
 ```
 
