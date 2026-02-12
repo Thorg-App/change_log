@@ -9,7 +9,7 @@ See @README.md for usage documentation. Run `change_log help` for command refere
 **Core script:** Single-file bash implementation (`change_log`, ~550 lines). Uses awk for performant bulk operations.
 
 Key functions:
-- `find_change_log_dir()` - Directory discovery: walks parents for `.change_log/`, auto-creates at git root
+- `find_change_log_dir()` - Directory discovery: walks parents for `.change_log/` or `.git` boundary (file or dir), auto-creates at nearest `.git`
 - `generate_id()` - Creates 25-char random `[a-z0-9]` IDs (decoupled from filename)
 - `timestamp_filename()` - Generates ISO8601 UTC filename stem (`YYYY-MM-DD_HH-MM-SSZ`)
 - `entry_path()` - Resolves exact entry ID to file path by searching frontmatter `id:` fields (single awk pass)

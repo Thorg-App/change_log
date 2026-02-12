@@ -72,3 +72,18 @@ Feature: Changelog Directory Resolution
     When I run "change_log create 'First entry' --impact 1"
     Then the command should succeed
     And the changelog directory should exist
+
+  Scenario: Auto-creates changelog in submodule with .git file
+    Given the changelog directory does not exist
+    And the test directory has a .git file (simulating a submodule)
+    When I run "change_log create 'Submodule entry' --impact 1"
+    Then the command should succeed
+    And the changelog directory should exist
+
+  Scenario: Finds changelog at submodule root from subdirectory
+    Given the changelog directory does not exist
+    And the test directory has a .git file (simulating a submodule)
+    And I am in subdirectory "src/components"
+    When I run "change_log create 'Deep entry' --impact 2"
+    Then the command should succeed
+    And the changelog directory should exist
