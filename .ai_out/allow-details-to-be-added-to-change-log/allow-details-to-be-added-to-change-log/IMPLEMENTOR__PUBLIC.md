@@ -1,60 +1,74 @@
-# Phase 1 Implementation: Strip Partial ID Matching
+# Phase 1 + Phase 2 + Phase 3 Implementation
 
-## Status: COMPLETE
+## Status: ALL PHASES COMPLETE
 
-All changes implemented and all 68 test scenarios pass (0 failures).
+All 71 test scenarios pass (8 features, 367 steps, 0 failures).
 
-## Changes Made
+---
 
-### 1. Simplified `entry_path()` in `change_log` (line 86-130)
-- Removed all partial/substring matching logic (`partial_count`, `partial_file`, `index(id, search)` branches)
-- Kept exact match only: `id == search`
-- Kept defensive `count > 1` case for ambiguous exact matches
-- Updated function comment from "supports partial ID matching" to "exact match only"
-- Updated awk comment from "collect all id-to-filename mappings, then resolve" to "find exact id match across all entry files"
+## Phase 1: Strip Partial ID Matching -- COMPLETE
 
-### 2. Updated `features/id_resolution.feature`
-- Updated feature description: "I want to look up entries by their ID" / "So that I can reference specific changelog entries"
-- KEPT: "Exact ID match" scenario
-- KEPT: "Non-existent ID error" scenario
-- REMOVED: 5 partial-ID scenarios (suffix, prefix, substring, ambiguous, exact-takes-precedence)
-- REMOVED: "ID resolution works with add-note command" (used partial ID)
-- ADDED: "Substring of ID does not match" scenario (verifies `1234` does NOT match `abc-1234`)
+(Implemented in prior session. See git log for details.)
 
-### 3. Removed partial-ID scenarios from other feature files
-- `features/changelog_show.feature`: Removed "Show with partial ID" scenario (lines 30-34)
-- `features/changelog_edit.feature`: Removed "Edit with partial ID" scenario (lines 21-24)
-- `features/changelog_notes.feature`: Removed "Add note with partial ID" scenario (lines 50-53)
+- Simplified `entry_path()` to exact-match only
+- Removed all partial ID test scenarios
+- Updated help text and README
 
-### 4. Updated help text in `cmd_help()` (line 516)
-- Changed `show <id>                 Display entry (supports partial ID)` to `show <id>                 Display entry`
+---
 
-### 5. Updated `README.md`
-- Removed "(supports partial ID)" from show command line (line 51)
-- Removed "IDs stored in frontmatter; supports partial ID matching" line (line 59)
+## Phase 2: Add `--details_in_md` Flag -- COMPLETE
 
-### 6. Updated `CLAUDE.md`
-- Changed `entry_path()` description from "Resolves partial IDs by searching frontmatter `id:` fields" to "Resolves exact entry ID to file path by searching frontmatter `id:` fields"
+### Changes Made
 
-## Decisions
-- No deviations from the plan. All reviewer corrections were incorporated.
-- The simplified awk retains the defensive `count > 1` exact match case as the plan specified.
+1. **`change_log` script** (`/usr/local/workplace/mirror/thorg-root-mirror-2/submodules/change_log/change_log`):
+   - Added `details=""` to `cmd_create()` variable declarations
+   - Added `--details_in_md) details="$2"; shift 2 ;;` case in argument parsing
+   - Added body writing after frontmatter: `printf '%s\n' "$details"` when details is non-empty
+   - Updated `cmd_help()`: added `--details_in_md TEXT` flag, clarified `--desc` as "Short description (in query output)", updated AFTER_COMPLETION guidance
 
-## Files Modified
+2. **`README.md`** (`/usr/local/workplace/mirror/thorg-root-mirror-2/submodules/change_log/README.md`):
+   - Updated usage block to match new help text
+
+3. **Test files**:
+   - `features/changelog_creation.feature`: Added 2 scenarios -- "Create with --details_in_md" and "Details visible via show command"
+   - `features/changelog_query.feature`: Added 1 scenario -- "Query excludes details_in_md content"
+   - `features/steps/changelog_steps.py`: Added `When I show the last created entry` step
+
+---
+
+## Phase 3: Documentation -- COMPLETE
+
+4. **`CHANGELOG.md`** (`/usr/local/workplace/mirror/thorg-root-mirror-2/submodules/change_log/CHANGELOG.md`):
+   - Added under [Unreleased] > Added: `--details_in_md` flag
+   - Added under [Unreleased] > Removed: Partial ID matching
+   - Added under [Unreleased] > Changed: Clarified help text
+
+5. **`CLAUDE.md`** (`/usr/local/workplace/mirror/thorg-root-mirror-2/submodules/change_log/CLAUDE.md`):
+   - Updated data model description to mention optional markdown body via `--details_in_md`
+
+---
+
+## Design Decisions
+
+- Used `printf '%s\n'` (not `echo`) to write details body -- safe against backslash interpretation
+- Details body placed after frontmatter closing `---` -- automatically excluded from `_file_to_jsonl()` JSONL output (no changes needed to JSONL generator)
+- Used simple single-line test text per reviewer guidance (avoided misleading `\n` in test strings)
+- Added `When I show the last created entry` step to enable end-to-end `create` then `show` testing
+
+## Files Modified (Phase 2 + 3)
+
 | File | Change |
 |------|--------|
-| `change_log` | Simplified `entry_path()`, updated help text |
-| `features/id_resolution.feature` | Rewrote to exact-match-only scenarios |
-| `features/changelog_show.feature` | Removed partial ID scenario |
-| `features/changelog_edit.feature` | Removed partial ID scenario |
-| `features/changelog_notes.feature` | Removed partial ID scenario |
-| `README.md` | Removed partial ID references |
-| `CLAUDE.md` | Updated entry_path() description |
+| `change_log` | Added `--details_in_md` flag to `cmd_create()`, updated `cmd_help()` |
+| `features/changelog_creation.feature` | Added 2 `--details_in_md` scenarios |
+| `features/changelog_query.feature` | Added query exclusion scenario |
+| `features/steps/changelog_steps.py` | Added `When I show the last created entry` step |
+| `README.md` | Updated help section |
+| `CHANGELOG.md` | Added Phase 1 + Phase 2 entries |
+| `CLAUDE.md` | Updated data model description |
 
 ## Test Results
-- 8 features passed, 0 failed
-- 68 scenarios passed, 0 failed
-- 352 steps passed, 0 failed
 
-## Next: Phase 2
-Phase 2 (add `--details_in_md` flag) is ready to be implemented. No blockers.
+- 8 features passed, 0 failed
+- 71 scenarios passed, 0 failed
+- 367 steps passed, 0 failed

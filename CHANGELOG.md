@@ -2,7 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+- `--details_in_md` flag for `create` command -- adds markdown body content visible via `show` but excluded from `query` JSONL output
+
+### Removed
+- Partial ID matching -- `show`, `edit`, `add-note` now require exact IDs
+
 ### Changed
+- Clarified help text: `--desc` is short description (in query output), `--details_in_md` is markdown body (not in query output)
 - **BREAKING**: Complete transformation from ticket system (`tk`) to changelog system (`change_log`)
 - Storage directory changed from `.tickets/` to `./.change_log/`
 - Environment variable changed from `TICKETS_DIR` to `CHANGE_LOG_DIR`

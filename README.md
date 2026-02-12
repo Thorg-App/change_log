@@ -41,7 +41,8 @@ Commands:
   create [title] [options]  Create changelog entry (prints JSON)
     --impact N              Impact level 1-5 (required)
     -t, --type TYPE         Type (feature|bug_fix|refactor|chore|breaking_change|docs|default) [default: default]
-    --desc TEXT             Description text
+    --desc TEXT             Short description (in query output)
+    --details_in_md TEXT    Markdown body (visible in show, NOT in query output)
     -a, --author NAME       Author [default: git user.name]
     --tags TAG,TAG,...      Comma-separated tags
     --dirs DIR,DIR,...      Comma-separated affected directories

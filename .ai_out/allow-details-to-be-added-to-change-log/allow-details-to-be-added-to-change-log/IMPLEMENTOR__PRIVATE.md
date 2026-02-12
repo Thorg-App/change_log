@@ -3,23 +3,19 @@
 ## Phase 1: COMPLETE
 All partial ID matching stripped. Tests pass.
 
-## Phase 2: NOT STARTED
-Next phase: add `--details_in_md TEXT` flag to `cmd_create()`.
+## Phase 2: COMPLETE
+`--details_in_md TEXT` flag added to `cmd_create()`. Body written after frontmatter, excluded from JSONL query output.
 
-### Key locations for Phase 2:
-- `cmd_create()` starts at line 260 in `change_log`
-- Argument parsing `while` loop is around line 263
-- File writing block ends around line 372 with `echo "---"` and `echo ""`
-- `_file_to_jsonl()` (lines 142-258) already only reads frontmatter, so details body is automatically excluded from JSONL
-- `cmd_help()` starts at line 499
-- Use `printf '%s\n' "$details"` (not echo) for safety per plan
+### Key locations:
+- `cmd_create()` variable declaration: line 259
+- `--details_in_md` case: line 288
+- Body writing: lines 371-373
+- `cmd_help()`: line 499
 
-### Phase 2 test plan:
-- Add scenarios to `features/changelog_creation.feature`
-- Add scenario to `features/changelog_query.feature` verifying details excluded
-- Use simpler single-line test text per reviewer correction (avoid misleading `\n`)
-- Existing step definitions should suffice
+## Phase 3: COMPLETE
+- CHANGELOG.md updated with Unreleased entries for both Phase 1 and Phase 2
+- CLAUDE.md data model description updated to mention `--details_in_md`
 
-### Phase 3: Documentation
-- Update CHANGELOG.md after Phase 2
-- CLAUDE.md already updated for Phase 1 changes
+## All Phases Complete
+- 71 scenarios pass, 0 failures
+- New step added: `When I show the last created entry` in `features/steps/changelog_steps.py`

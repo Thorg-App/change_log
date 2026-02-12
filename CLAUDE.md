@@ -19,7 +19,7 @@ Key functions:
 - `_sorted_entries()` - Lists entry files most-recent-first (reverse filename sort)
 - `cmd_*()` - Command handlers (create, show, edit, add_note, ls, query, help)
 
-Data model: Filenames are ISO8601 timestamps (e.g., `2026-02-11_16-32-16Z.md`). The `id` field in frontmatter is the stable identifier. `title` is stored in frontmatter (double-quoted). Frontmatter fields: `id`, `title`, `desc`, `created_iso`, `type`, `impact`, `author`, `tags`, `dirs`, `ap`, `note_id`.
+Data model: Filenames are ISO8601 timestamps (e.g., `2026-02-11_16-32-16Z.md`). The `id` field in frontmatter is the stable identifier. `title` is stored in frontmatter (double-quoted). Frontmatter fields: `id`, `title`, `desc`, `created_iso`, `type`, `impact`, `author`, `tags`, `dirs`, `ap`, `note_id`. Optional markdown body after frontmatter (via `--details_in_md`) is visible in `show` but excluded from `query` JSONL output.
 
 Dependencies: bash, sed, awk, find. Optional: ripgrep (faster grep), jq (for query filtering).
 

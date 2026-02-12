@@ -142,3 +142,15 @@ Feature: Changelog Entry Creation
     When I run "change_log create 'Author test' --impact 3 -a 'Test Author'"
     Then the command should succeed
     And the created entry should have field "author" with value "Test Author"
+
+  Scenario: Create with --details_in_md
+    When I run "change_log create 'Details test' --impact 3 --details_in_md 'Detailed markdown body content'"
+    Then the command should succeed
+    And the created entry should contain "Detailed markdown body content"
+
+  Scenario: Details visible via show command
+    When I run "change_log create 'Show details test' --impact 3 --details_in_md 'Context and explanation here'"
+    Then the command should succeed
+    When I show the last created entry
+    Then the command should succeed
+    And the output should contain "Context and explanation here"

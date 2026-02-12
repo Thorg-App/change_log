@@ -240,6 +240,13 @@ def step_test_dir_is_git_repo(context):
 # NOTE: More specific step patterns MUST be defined BEFORE the generic 'I run "X"'
 # because behave regex matchers try steps in definition order.
 
+@when(r'I show the last created entry')
+def step_show_last_created_entry(context):
+    """Run 'change_log show' with the last created entry's ID."""
+    entry_id = context.last_created_id
+    _run_command(context, f'change_log show {entry_id}')
+
+
 @when(r'I run "(?P<command>(?:[^"\\]|\\.)+)" in non-TTY mode')
 def step_run_command_non_tty(context, command):
     """Run a command simulating non-TTY mode."""
