@@ -78,3 +78,12 @@ Feature: Changelog Query
     And I run "change_log query"
     Then the command should succeed
     And the output should not contain "SECRET_DETAILS_TEXT"
+
+  Scenario: Query does not leak body content when details contain markdown horizontal rule
+    When I run "change_log create 'HR body test' --impact 2 --desc 'real desc' --details_in_md $'Some details\n\n---\n\nfake_field: leaked_value\nstatus: should_not_appear'"
+    And I run "change_log query"
+    Then the command should succeed
+    And the output should contain "real desc"
+    And the output should not contain "leaked_value"
+    And the output should not contain "fake_field"
+    And the output should not contain "should_not_appear"

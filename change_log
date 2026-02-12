@@ -104,9 +104,14 @@ entry_path() {
         if (prev_file && id != "") {
             if (id == search) { count++; match_file = prev_file }
         }
-        id = ""; in_front = 0; prev_file = FILENAME
+        id = ""; in_front = 0; fm_delim = 0; prev_file = FILENAME
     }
-    /^---$/ { in_front = !in_front; next }
+    /^---$/ {
+        fm_delim++
+        if (fm_delim == 1) in_front = 1
+        else if (fm_delim == 2) in_front = 0
+        next
+    }
     in_front && /^id:/ { id = substr($0, 5); gsub(/^ +| +$/, "", id) }
     END {
         if (prev_file && id != "") {
@@ -139,16 +144,18 @@ VALID_TYPES="feature bug_fix refactor chore breaking_change docs default"
 # Usage: _file_to_jsonl file1.md [file2.md ...]
 _file_to_jsonl() {
     awk '
-    BEGIN { FS=": "; in_front=0 }
+    BEGIN { FS=": "; in_front=0; fm_delim=0 }
     FNR==1 {
         if (prev_file) emit()
-        field_count=0; in_front=0; in_map=0; map_key=""
+        field_count=0; in_front=0; fm_delim=0; in_map=0; map_key=""
         prev_file=FILENAME
     }
     /^---$/ {
         # End of map if we were in one
         if (in_map) { in_map=0; map_key="" }
-        in_front = !in_front
+        fm_delim++
+        if (fm_delim == 1) in_front = 1
+        else if (fm_delim == 2) in_front = 0
         next
     }
     # Indented line (map continuation) while in frontmatter
@@ -461,13 +468,18 @@ cmd_ls() {
 
     # Single awk pass over the selected files
     awk '
-    BEGIN { FS=": "; in_front=0 }
+    BEGIN { FS=": "; in_front=0; fm_delim=0 }
     FNR==1 {
         if (prev_file) emit()
-        id=""; title=""; impact=""; entry_type=""; in_front=0
+        id=""; title=""; impact=""; entry_type=""; in_front=0; fm_delim=0
         prev_file=FILENAME
     }
-    /^---$/ { in_front = !in_front; next }
+    /^---$/ {
+        fm_delim++
+        if (fm_delim == 1) in_front = 1
+        else if (fm_delim == 2) in_front = 0
+        next
+    }
     in_front && /^id:/ { id = $2 }
     in_front && /^impact:/ { impact = $2 }
     in_front && /^type:/ { entry_type = $2 }
