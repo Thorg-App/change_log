@@ -41,14 +41,15 @@ Commands:
   create [title] [options]  Create changelog entry (prints JSON)
     --impact N              Impact level 1-5 (required)
     -t, --type TYPE         Type (feature|bug_fix|refactor|chore|breaking_change|docs|default) [default: default]
-    --desc TEXT             Description text
+    --desc TEXT             Short description (in query output)
+    --details_in_md TEXT    Markdown body (visible in show, NOT in query output)
     -a, --author NAME       Author [default: git user.name]
     --tags TAG,TAG,...      Comma-separated tags
     --dirs DIR,DIR,...      Comma-separated affected directories
     --ap KEY=VALUE          Anchor point (repeatable)
     --note-id KEY=VALUE     Note ID reference (repeatable)
   ls|list [--limit=N]       List entries (most recent first)
-  show <id>                 Display entry (supports partial ID)
+  show <id>                 Display entry
   edit <id>                 Open entry in $EDITOR
   add-note <id> [text]      Append timestamped note (text or stdin)
   query [jq-filter]         Output entries as JSONL (requires jq for filter)
@@ -56,7 +57,6 @@ Commands:
 
 Entries stored as markdown in ./.change_log/ (auto-created at git repo root)
 Override directory with CHANGE_LOG_DIR env var
-IDs stored in frontmatter; supports partial ID matching
 ```
 
 ## Testing

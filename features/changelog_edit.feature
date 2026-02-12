@@ -18,7 +18,3 @@ Feature: Changelog Edit
     Then the command should fail
     And the output should contain "Error: entry 'nonexistent' not found"
 
-  Scenario: Edit with partial ID
-    When I run "change_log edit 0001" in non-TTY mode
-    Then the command should succeed
-    And the output should contain ".md"

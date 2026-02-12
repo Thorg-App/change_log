@@ -27,12 +27,6 @@ Feature: Changelog Show
     Then the command should fail
     And the output should contain "Error: entry 'nonexistent' not found"
 
-  Scenario: Show with partial ID
-    Given a changelog entry exists with ID "show-001" and title "Test entry"
-    When I run "change_log show 001"
-    Then the command should succeed
-    And the output should contain "id: show-001"
-
   Scenario: Show with no arguments
     When I run "change_log show"
     Then the command should fail

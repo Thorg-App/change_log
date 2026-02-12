@@ -72,3 +72,9 @@ Feature: Changelog Query
     Then the command should succeed
     And the output should contain "desc"
     And the output should contain "A test description"
+
+  Scenario: Query excludes details_in_md content
+    When I run "change_log create 'Query exclude test' --impact 3 --details_in_md 'SECRET_DETAILS_TEXT'"
+    And I run "change_log query"
+    Then the command should succeed
+    And the output should not contain "SECRET_DETAILS_TEXT"
