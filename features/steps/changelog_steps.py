@@ -233,6 +233,22 @@ def step_test_dir_is_git_repo(context):
     )
 
 
+@given(r'the test directory has a \.git file \(simulating a submodule\)')
+def step_test_dir_has_git_file(context):
+    """Create a .git file (not directory) to simulate a submodule root.
+
+    Git submodules have a .git file containing 'gitdir: ...' instead of
+    a .git directory. The actual gitdir path does not need to resolve --
+    change_log only checks for .git existence, not its contents.
+    """
+    git_path = Path(context.test_dir) / '.git'
+    # Remove .git directory if git init was previously run
+    if git_path.is_dir():
+        import shutil
+        shutil.rmtree(git_path)
+    git_path.write_text('gitdir: ../../../.git/modules/my-submodule\n')
+
+
 # ============================================================================
 # When Steps
 # ============================================================================

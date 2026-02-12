@@ -4,7 +4,7 @@ set -euo pipefail
 # change_log - git-backed changelog for AI agents
 # Stores markdown files with YAML frontmatter in ./.change_log/
 
-# Find change_log directory by walking parent directories, auto-create at git root
+# Find change_log directory by walking parent directories, auto-create at .git boundary
 find_change_log_dir() {
     # 1. Env var override
     if [[ -n "${CHANGE_LOG_DIR:-}" ]]; then
@@ -12,10 +12,17 @@ find_change_log_dir() {
         return 0
     fi
 
-    # 2. Walk parents looking for .change_log/
+    # 2. Walk parents looking for .change_log/ or .git boundary
     local dir="$PWD"
     while [[ "$dir" != "/" ]]; do
         if [[ -d "$dir/.change_log" ]]; then
+            echo "$dir/.change_log"
+            return 0
+        fi
+        # [.git boundary]: Use -e (not -d) because submodules have a .git *file*
+        # containing "gitdir: ..." rather than a .git directory.
+        if [[ -e "$dir/.git" ]]; then
+            mkdir -p "$dir/.change_log"
             echo "$dir/.change_log"
             return 0
         fi
@@ -25,15 +32,7 @@ find_change_log_dir() {
     # Check root too
     [[ -d "/.change_log" ]] && { echo "/.change_log"; return 0; }
 
-    # 3. Auto-create at git repo root
-    local git_root
-    if git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
-        mkdir -p "$git_root/.change_log"
-        echo "$git_root/.change_log"
-        return 0
-    fi
-
-    # 4. Not found and not in a git repo
+    # 3. Not found and not in a git repo
     echo "Error: no .change_log directory found and not in a git repository" >&2
     return 1
 }
