@@ -1,7 +1,7 @@
 # change_log
 
 A git-backed changelog for AI agents. Entries are markdown files with YAML
-frontmatter in `./change_log/`. Filenames are ISO8601 timestamps
+frontmatter in `./.change_log/`. Filenames are ISO8601 timestamps
 (`2026-02-11_16-32-16Z.md`). A random 25-character ID in the YAML frontmatter
 serves as the stable identifier for lookups.
 
@@ -54,7 +54,7 @@ Commands:
   query [jq-filter]         Output entries as JSONL (requires jq for filter)
   help                      Show this help
 
-Entries stored as markdown in ./change_log/ (auto-created at git repo root)
+Entries stored as markdown in ./.change_log/ (auto-created at git repo root)
 Override directory with CHANGE_LOG_DIR env var
 IDs stored in frontmatter; supports partial ID matching
 ```

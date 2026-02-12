@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # change_log - git-backed changelog for AI agents
-# Stores markdown files with YAML frontmatter in ./change_log/
+# Stores markdown files with YAML frontmatter in ./.change_log/
 
 # Find change_log directory by walking parent directories, auto-create at git root
 find_change_log_dir() {
@@ -12,29 +12,29 @@ find_change_log_dir() {
         return 0
     fi
 
-    # 2. Walk parents looking for change_log/
+    # 2. Walk parents looking for .change_log/
     local dir="$PWD"
     while [[ "$dir" != "/" ]]; do
-        if [[ -d "$dir/change_log" ]]; then
-            echo "$dir/change_log"
+        if [[ -d "$dir/.change_log" ]]; then
+            echo "$dir/.change_log"
             return 0
         fi
         dir=$(dirname "$dir")
     done
 
     # Check root too
-    [[ -d "/change_log" ]] && { echo "/change_log"; return 0; }
+    [[ -d "/.change_log" ]] && { echo "/.change_log"; return 0; }
 
     # 3. Auto-create at git repo root
     local git_root
     if git_root=$(git rev-parse --show-toplevel 2>/dev/null); then
-        mkdir -p "$git_root/change_log"
-        echo "$git_root/change_log"
+        mkdir -p "$git_root/.change_log"
+        echo "$git_root/.change_log"
         return 0
     fi
 
     # 4. Not found and not in a git repo
-    echo "Error: no change_log directory found and not in a git repository" >&2
+    echo "Error: no .change_log directory found and not in a git repository" >&2
     return 1
 }
 
@@ -519,7 +519,7 @@ Commands:
   query [jq-filter]         Output entries as JSONL (requires jq for filter)
   help                      Show this help
 
-Entries stored as markdown in ./change_log/ (auto-created at git repo root)
+Entries stored as markdown in ./.change_log/ (auto-created at git repo root)
 Override directory with CHANGE_LOG_DIR env var
 IDs stored in frontmatter; supports partial ID matching
 EOF

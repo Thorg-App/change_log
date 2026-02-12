@@ -17,30 +17,30 @@ The current `ticket` CLI is a git-backed issue tracker with dependency graphs, s
 - CI/CD workflows
 
 ## Solution Overview
-Gut the `ticket` script, rename to `change_log`, and rebuild around a changelog data model. Storage moves from `.tickets/` to `./change_log/`. Filenames become ISO8601 timestamps (`2026-02-11_16-32-16Z.md`). Frontmatter is simplified to changelog-relevant fields with `impact` as a required field. All listing/query commands default to most-recent-first.
+Gut the `ticket` script, rename to `change_log`, and rebuild around a changelog data model. Storage moves from `.tickets/` to `./.change_log/`. Filenames become ISO8601 timestamps (`2026-02-11_16-32-16Z.md`). Frontmatter is simplified to changelog-relevant fields with `impact` as a required field. All listing/query commands default to most-recent-first.
 
 ## User-Facing Behavior
 
 - **Behavior: Create Entry**
-  - GIVEN a `./change_log/` directory exists (or git repo root is discoverable)
+  - GIVEN a `./.change_log/` directory exists (or git repo root is discoverable)
   - WHEN `change_log create "Add auth" --impact 3`
-  - THEN a file `YYYY-MM-DD_HH-MM-SSZ.md` is created in `./change_log/`
+  - THEN a file `YYYY-MM-DD_HH-MM-SSZ.md` is created in `./.change_log/`
   - AND JSON `{"id":"...","full_path":"..."}` is printed to stdout
 
 - **Behavior: Create Entry with All Options**
-  - GIVEN a `./change_log/` directory exists
+  - GIVEN a `./.change_log/` directory exists
   - WHEN `change_log create "Add auth" --impact 3 -t feature --desc "Added OAuth2" --dirs src/auth,src/api --tags auth,security --ap handler=anchor_point.X --note-id design=resABC`
   - THEN frontmatter contains all specified fields with correct values
 
 - **Behavior: Create Auto-Creates Directory**
-  - GIVEN no `./change_log/` directory exists in any parent
+  - GIVEN no `./.change_log/` directory exists in any parent
   - AND the current directory is inside a git repository
   - WHEN `change_log create "First entry" --impact 1`
-  - THEN `./change_log/` is created at the git repo root
+  - THEN `./.change_log/` is created at the git repo root
   - AND the entry is created there
 
 - **Behavior: Impact Required**
-  - GIVEN a `./change_log/` directory exists
+  - GIVEN a `./.change_log/` directory exists
   - WHEN `change_log create "Title"` (no --impact)
   - THEN the command fails with an error indicating impact is required
 
@@ -124,7 +124,7 @@ Single bash script (`change_log`) with:
 | Existing Behavior | Approved Change | Approval Note |
 |-------------------|-----------------|---------------|
 | All ticketing behaviors | Complete replacement with changelog system | Engineer explicitly approved full transformation |
-| `.tickets/` directory | Replaced by `./change_log/` | Confirmed |
+| `.tickets/` directory | Replaced by `./.change_log/` | Confirmed |
 | `ticket` command name | Replaced by `change_log` | Confirmed |
 | Plugin dispatch system | Removed entirely | Confirmed |
 | All status/dep/link commands | Removed entirely | Confirmed |

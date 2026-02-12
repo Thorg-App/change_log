@@ -4,7 +4,7 @@
 
 ### Changed
 - **BREAKING**: Complete transformation from ticket system (`tk`) to changelog system (`change_log`)
-- Storage directory changed from `.tickets/` to `./change_log/`
+- Storage directory changed from `.tickets/` to `./.change_log/`
 - Environment variable changed from `TICKETS_DIR` to `CHANGE_LOG_DIR`
 - Pager variable changed from `TICKET_PAGER` to `CHANGE_LOG_PAGER`
 - Filenames changed from title-based slugs to ISO8601 timestamps (`YYYY-MM-DD_HH-MM-SSZ.md`)
