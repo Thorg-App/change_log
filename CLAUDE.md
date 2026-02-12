@@ -12,7 +12,7 @@ Key functions:
 - `find_change_log_dir()` - Directory discovery: walks parents for `.change_log/`, auto-creates at git root
 - `generate_id()` - Creates 25-char random `[a-z0-9]` IDs (decoupled from filename)
 - `timestamp_filename()` - Generates ISO8601 UTC filename stem (`YYYY-MM-DD_HH-MM-SSZ`)
-- `entry_path()` - Resolves partial IDs by searching frontmatter `id:` fields (single awk pass)
+- `entry_path()` - Resolves exact entry ID to file path by searching frontmatter `id:` fields (single awk pass)
 - `id_from_file()` - Extracts `id:` from a file's YAML frontmatter
 - `_file_to_jsonl()` - Shared awk-based JSONL generator (used by create and query)
 - `yaml_field()` - YAML frontmatter field extraction via sed

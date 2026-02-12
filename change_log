@@ -83,7 +83,7 @@ _sorted_entries() {
     printf '%s\n' "${md_files[@]}" | sort -r
 }
 
-# Get entry file path by searching frontmatter id: fields (supports partial ID matching)
+# Get entry file path by searching frontmatter id: fields (exact match only)
 entry_path() {
     local search="$1"
     # Trim leading/trailing whitespace (handles Claude/agent quirks)
@@ -97,13 +97,12 @@ entry_path() {
         return 1
     fi
 
-    # Single awk pass: collect all id-to-filename mappings, then resolve
+    # Single awk pass: find exact id match across all entry files
     local result
     result=$(awk -v search="$search" '
     FNR==1 {
         if (prev_file && id != "") {
-            if (id == search) { exact_count++; exact_file = prev_file }
-            else if (index(id, search) > 0) { partial_count++; partial_file = prev_file }
+            if (id == search) { count++; match_file = prev_file }
         }
         id = ""; in_front = 0; prev_file = FILENAME
     }
@@ -111,13 +110,10 @@ entry_path() {
     in_front && /^id:/ { id = substr($0, 5); gsub(/^ +| +$/, "", id) }
     END {
         if (prev_file && id != "") {
-            if (id == search) { exact_count++; exact_file = prev_file }
-            else if (index(id, search) > 0) { partial_count++; partial_file = prev_file }
+            if (id == search) { count++; match_file = prev_file }
         }
-        if (exact_count == 1) { print exact_file; exit 0 }
-        if (exact_count > 1) { printf "Error: ambiguous ID \x27%s\x27 matches multiple entries\n", search > "/dev/stderr"; exit 1 }
-        if (partial_count == 1) { print partial_file; exit 0 }
-        if (partial_count > 1) { printf "Error: ambiguous ID \x27%s\x27 matches multiple entries\n", search > "/dev/stderr"; exit 1 }
+        if (count == 1) { print match_file; exit 0 }
+        if (count > 1) { printf "Error: ambiguous ID \x27%s\x27 matches multiple entries\n", search > "/dev/stderr"; exit 1 }
         printf "Error: entry \x27%s\x27 not found\n", search > "/dev/stderr"; exit 1
     }
     ' "${md_files[@]}")
@@ -513,7 +509,7 @@ Commands:
     --ap KEY=VALUE          Anchor point (repeatable)
     --note-id KEY=VALUE     Note ID reference (repeatable)
   ls|list [--limit=N]       List entries (most recent first)
-  show <id>                 Display entry (supports partial ID)
+  show <id>                 Display entry
   edit <id>                 Open entry in $EDITOR
   add-note <id> [text]      Append timestamped note (text or stdin)
   query [jq-filter]         Output entries as JSONL (requires jq for filter)
