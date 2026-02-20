@@ -3,7 +3,7 @@
 # change_log
 
 A git-backed changelog for AI agents. Entries are markdown files with YAML
-frontmatter in `./.change_log/`. Filenames are ISO8601 timestamps
+frontmatter in `./_change_log/`. Filenames are ISO8601 timestamps
 (`2026-02-11_16-32-16Z.md`). A random 25-character ID in the YAML frontmatter
 serves as the stable identifier for lookups.
 
