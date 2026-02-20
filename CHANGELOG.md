@@ -2,9 +2,6 @@
 
 ## [Unreleased]
 
-### Changed
-- **BREAKING**: Default storage directory changed from `.change_log/` to `_change_log/` (no longer hidden from `fd`, `rg`, etc.)
-
 ### Added
 - `--details_in_md` flag for `create` command -- adds markdown body content visible via `show` but excluded from `query` JSONL output
 
@@ -14,7 +11,7 @@
 ### Changed
 - Clarified help text: `--desc` is short description (in query output), `--details_in_md` is markdown body (not in query output)
 - **BREAKING**: Complete transformation from ticket system (`tk`) to changelog system (`change_log`)
-- Storage directory changed from `.tickets/` to `./_change_log/`
+- Storage directory changed from `.tickets/` to `./.change_log/`
 - Environment variable changed from `TICKETS_DIR` to `CHANGE_LOG_DIR`
 - Pager variable changed from `TICKET_PAGER` to `CHANGE_LOG_PAGER`
 - Filenames changed from title-based slugs to ISO8601 timestamps (`YYYY-MM-DD_HH-MM-SSZ.md`)

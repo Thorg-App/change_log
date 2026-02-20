@@ -52,14 +52,14 @@ Feature: Changelog Directory Resolution
     Given the changelog directory does not exist
     When I run "change_log ls"
     Then the command should fail
-    And the output should contain "no _change_log directory found"
+    And the output should contain "no .change_log directory found"
 
   Scenario: Error when no changelog directory in any parent
     Given the changelog directory does not exist
     And I am in subdirectory "orphan/deep/path"
     When I run "change_log ls"
     Then the command should fail
-    And the output should contain "no _change_log directory found"
+    And the output should contain "no .change_log directory found"
 
   Scenario: Unknown command shows helpful error
     When I run "change_log foo"

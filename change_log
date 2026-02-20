@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # change_log - git-backed changelog for AI agents
-# Stores markdown files with YAML frontmatter in ./_change_log/
+# Stores markdown files with YAML frontmatter in ./.change_log/
 
 # Find change_log directory by walking parent directories, auto-create at .git boundary
 find_change_log_dir() {
@@ -12,28 +12,28 @@ find_change_log_dir() {
         return 0
     fi
 
-    # 2. Walk parents looking for _change_log/ or .git boundary
+    # 2. Walk parents looking for .change_log/ or .git boundary
     local dir="$PWD"
     while [[ "$dir" != "/" ]]; do
-        if [[ -d "$dir/_change_log" ]]; then
-            echo "$dir/_change_log"
+        if [[ -d "$dir/.change_log" ]]; then
+            echo "$dir/.change_log"
             return 0
         fi
         # [.git boundary]: Use -e (not -d) because submodules have a .git *file*
         # containing "gitdir: ..." rather than a .git directory.
         if [[ -e "$dir/.git" ]]; then
-            mkdir -p "$dir/_change_log"
-            echo "$dir/_change_log"
+            mkdir -p "$dir/.change_log"
+            echo "$dir/.change_log"
             return 0
         fi
         dir=$(dirname "$dir")
     done
 
     # Check root too
-    [[ -d "/_change_log" ]] && { echo "/_change_log"; return 0; }
+    [[ -d "/.change_log" ]] && { echo "/.change_log"; return 0; }
 
     # 3. Not found and not in a git repo
-    echo "Error: no _change_log directory found and not in a git repository" >&2
+    echo "Error: no .change_log directory found and not in a git repository" >&2
     return 1
 }
 
@@ -532,7 +532,7 @@ Commands:
   query [jq-filter]         Output entries as JSONL (requires jq for filter)
   help                      Show this help
 
-Entries stored as markdown in ./_change_log/ (auto-created at nearest .git root)
+Entries stored as markdown in ./.change_log/ (auto-created at nearest .git root)
 Override directory with CHANGE_LOG_DIR env var
 
 - BEFORE_STARTING: query for recent changes to gather the context of recent relevant changes that were made.
