@@ -33,9 +33,9 @@ def create_entry(context, entry_id, title, impact=3, entry_type="default", targe
     where counter is len(context.entries) at call time.
 
     Args:
-        target_dir: Override directory. Defaults to <test_dir>/.change_log/.
+        target_dir: Override directory. Defaults to <test_dir>/_change_log/.
     """
-    changelog_dir = Path(target_dir) if target_dir else Path(context.test_dir) / '.change_log'
+    changelog_dir = Path(target_dir) if target_dir else Path(context.test_dir) / '_change_log'
     changelog_dir.mkdir(parents=True, exist_ok=True)
 
     counter = len(context.entries)
@@ -68,8 +68,8 @@ def find_entry_file(context, entry_id):
         if path.exists():
             return path
 
-    # Fallback: scan .change_log/ directory
-    changelog_dir = Path(context.test_dir) / '.change_log'
+    # Fallback: scan _change_log/ directory
+    changelog_dir = Path(context.test_dir) / '_change_log'
     if not changelog_dir.exists():
         raise FileNotFoundError(f"Changelog directory not found at {changelog_dir}")
 
@@ -162,8 +162,8 @@ def _run_command(context, command, env_override=None, input_text=None):
 
 @given(r'a clean changelog directory')
 def step_clean_changelog_directory(context):
-    """Ensure we start with a clean .change_log directory."""
-    changelog_dir = Path(context.test_dir) / '.change_log'
+    """Ensure we start with a clean _change_log directory."""
+    changelog_dir = Path(context.test_dir) / '_change_log'
     if changelog_dir.exists():
         import shutil
         shutil.rmtree(changelog_dir)
@@ -172,8 +172,8 @@ def step_clean_changelog_directory(context):
 
 @given(r'the changelog directory does not exist')
 def step_changelog_dir_not_exist(context):
-    """Ensure .change_log directory does not exist."""
-    changelog_dir = Path(context.test_dir) / '.change_log'
+    """Ensure _change_log directory does not exist."""
+    changelog_dir = Path(context.test_dir) / '_change_log'
     if changelog_dir.exists():
         import shutil
         shutil.rmtree(changelog_dir)
@@ -406,9 +406,9 @@ def step_output_line_count(context, count):
 
 @then(r'the changelog directory should exist')
 def step_changelog_dir_exists(context):
-    """Assert .change_log directory exists."""
-    changelog_dir = Path(context.test_dir) / '.change_log'
-    assert changelog_dir.exists(), f".change_log directory does not exist at {changelog_dir}"
+    """Assert _change_log directory exists."""
+    changelog_dir = Path(context.test_dir) / '_change_log'
+    assert changelog_dir.exists(), f"_change_log directory does not exist at {changelog_dir}"
 
 
 @then(r'a entry file should exist with title "(?P<title>[^"]+)"')
@@ -491,8 +491,8 @@ def step_entry_has_timestamp_in_notes(context, entry_id):
 
 @then(r'a file named "(?P<filename>[^"]+)" should exist in changelog directory')
 def step_file_named_exists_in_changelog(context, filename):
-    """Assert a specific filename exists in .change_log/ directory."""
-    changelog_dir = Path(context.test_dir) / '.change_log'
+    """Assert a specific filename exists in _change_log/ directory."""
+    changelog_dir = Path(context.test_dir) / '_change_log'
     file_path = changelog_dir / filename
     assert file_path.exists(), \
-        f"File {filename} does not exist in .change_log/\nFiles present: {[f.name for f in changelog_dir.glob('*.md')]}"
+        f"File {filename} does not exist in _change_log/\nFiles present: {[f.name for f in changelog_dir.glob('*.md')]}"
