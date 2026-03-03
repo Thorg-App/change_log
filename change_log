@@ -536,7 +536,7 @@ Entries stored as markdown in ./_change_log/ (auto-created at nearest .git root)
 Override directory with CHANGE_LOG_DIR env var
 
 - BEFORE_STARTING: query for recent changes to gather the context of recent relevant changes that were made.
-- AFTER_COMPLETION_OF_ITEM: Add change log entry with clear title, concise --desc, and use --details_in_md for longer explanations.
+- AFTER_COMPLETION of TOP_LEVEL_AGENT work: Add change log entry with clear title, concise --desc, and use --details_in_md for longer explanations. Sub-agents should NOT write change log.
 EOF
 }
 
